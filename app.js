@@ -43,7 +43,7 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
     }
   },
 }));
-app.get('/api/v1', (req, res) => {
+app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
