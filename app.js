@@ -85,54 +85,66 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
     }
   },
 }));
+
+// Base API route with error handling
 app.get('/api/v1', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>API v1 Response</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          background-color: #f4f4f4;
-          margin: 0;
-        }
-        .container {
-          text-align: center;
-          padding: 20px;
-          border-radius: 8px;
-          background-color: #ffffff;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-          color: #333;
-        }
-        p {
-          color: #555;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>Welcome to SliceNShare API v1</h1>
-        <p>This is the HTML response for the <i>/api/v1</i> endpoint.</p>
-      </div>
-    </body>
-    </html>
-  `);
+  try {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>API v1 Response</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+          }
+          .container {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          }
+          h1 {
+            color: #333;
+          }
+          p {
+            color: #555;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Welcome to SliceNShare API v1</h1>
+          <p>This is the HTML response for the <i>/api/v1</i> endpoint.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error in /api/v1 route:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.use(useragent.express());
 
-// Serve favicon
+// Serve favicon with proper error handling
 app.get('/favicon.ico', (req, res) => {
-  res.status(204).end(); // No content response for favicon requests
+  try {
+    res.status(204).end(); // No content response for favicon requests
+  } catch (error) {
+    console.error('Error serving favicon:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.use('/api/v1/homepage', homepageRoutes);
@@ -143,12 +155,21 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/checkout', checkoutRoutes);
 
-// app.listen(process.env.PORT, () => {
-//   console.log(`⁠ Server running on port ${process.env.PORT} ⁠`);
-//   console.log(⁠`Server running on port ${process.env.BASE_URL}`⁠);
-// });
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
 
 app.listen(process.env.PORT, () => {
-  console.log(`server is running on port ${process.env.PORT}`);
-  console.log(`server is running on port ${process.env.BASE_URL}`);
+  console.log(`Server is running on port ${process.env.PORT}`);
+  console.log(`Server is running on ${process.env.BASE_URL}`);
 })
