@@ -15,9 +15,16 @@ const cartRoutes = require('./v1/routes/cart');
 const checkoutRoutes = require('./v1/routes/checkout');
 const authRoutes = require('./v1/routes/auth');
 
+// Load environment variables
 dotenv.config();
+
+// Initialize Express app
 const app = express();
-connectmongoDB();
+
+// Connect to MongoDB
+connectmongoDB().catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+});
 
 // Define allowed origins based on environment
 const allowedOrigins = [
@@ -73,8 +80,8 @@ app.use(express.json());
 app.use(cors(corsOptions));
 // Handle preflight requests with CORS
 app.options('*', cors(corsOptions));
+
 // Serve static files with correct MIME types
-// Serving static files with correct MIME types
 app.use('/public', express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, path, stat) => {
     if (path.endsWith('.css')) {
@@ -169,7 +176,14 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-  console.log(`Server is running on ${process.env.BASE_URL}`);
-})
+// Only start the server if we're in development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
+  });
+}
+
+// Export the Express app for Vercel
+module.exports = app;
