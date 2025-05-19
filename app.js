@@ -5,26 +5,67 @@ const helmet = require('helmet');
 const xss = require('xss-clean');
 const path = require('path');
 const connectmongoDB = require('./config/mongodbConfig.js');
+const useragent = require('express-useragent');
 
 const homepageRoutes = require('./v1/routes/homepage');
 const productRoutes = require('./v1/routes/product');
+// Keep the model import but comment out routes until ready
 const streamerRoutes = require('./v1/routes/streamer');
 const cartRoutes = require('./v1/routes/cart');
+const checkoutRoutes = require('./v1/routes/checkout');
+const authRoutes = require('./v1/routes/auth');
 
 dotenv.config();
 const app = express();
 connectmongoDB();
 
+// Define allowed origins based on environment
+const allowedOrigins = [
+  // Development origins
+  'http://localhost:3000',
+  'http://localhost:5173', // For Vite default port
+  // Production origins
+  'https://slicenshare.vercel.app',
+  'https://slice-nshare-server.vercel.app',
+  process.env.PRODUCTION_CLIENT_URL,
+  process.env.PRODUCTION_API_URL,
+].filter(Boolean); // Remove any undefined values
+
 // Define CORS options
 const corsOptions = {
-  origin: [
-    `http://localhost:${process.env.PORT}`,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
-  optionsSuccessStatus: 200, // For legacy browsers
+  optionsSuccessStatus: 200, // For legacy browser support
+  maxAge: 86400 // 24 hours
 };
+
+// Apply security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }
+}));
 app.use(xss());
 app.use(express.json());
 // Apply CORS middleware globally
@@ -43,14 +84,14 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
     }
   },
 }));
-app.get('/', (req, res) => {
+app.get('/api/v1', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>API v1 Response testing</title>
+      <title>API v1 Response</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -86,14 +127,22 @@ app.get('/', (req, res) => {
   `);
 });
 
+app.use(useragent.express());
+
 app.use('/api/v1/homepage', homepageRoutes);
-
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
-app.use('/api/v1/streamers', streamerRoutes);
-
+// Will implement streamer routes after user authentication is complete
+// app.use('/api/v1/streamers', streamerRoutes);
 app.use('/api/v1/cart', cartRoutes);
+app.use('/api/v1/checkout', checkoutRoutes);
+
+// app.listen(process.env.PORT, () => {
+//   console.log(`⁠ Server running on port ${process.env.PORT} ⁠`);
+//   console.log(⁠`Server running on port ${process.env.BASE_URL}`⁠);
+// });
 
 app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-  console.log(`Server running on port ${process.env.BASE_URL}`);
-});
+  console.log(`server is running on port ${process.env.PORT}`);
+  console.log(`server is running on port ${process.env.BASE_URL}`);
+})
