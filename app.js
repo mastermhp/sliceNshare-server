@@ -24,6 +24,7 @@ const allowedOrigins = [
   // Development origins
   'http://localhost:3000',
   'http://localhost:5173', // For Vite default port
+  `http://localhost:${process.env.PORT}`,
   // Production origins
   'https://slicenshare.vercel.app',
   'https://slice-nshare-server.vercel.app',
