@@ -130,6 +130,11 @@ app.get('/api/v1', (req, res) => {
 
 app.use(useragent.express());
 
+// Serve favicon
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // No content response for favicon requests
+});
+
 app.use('/api/v1/homepage', homepageRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
